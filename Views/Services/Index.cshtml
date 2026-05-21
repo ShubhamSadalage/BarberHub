@@ -1,0 +1,106 @@
+@model List<BarberHub.Web.Domain.Entities.Service>
+@{
+    ViewData["Title"] = "My Services";
+    var groups = Model.GroupBy(s => s.Category).OrderBy(g => g.Key).ToList();
+}
+
+<div class="d-flex justify-content-between align-items-end mb-3 flex-wrap gap-2">
+    <div>
+        <h2 class="section-title">My Services</h2>
+        <p class="section-subtitle mb-0">Services visible to customers when booking.</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a asp-action="Templates" class="btn btn-light">
+            <i class="bi bi-grid me-1"></i> Add from templates
+        </a>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i> Add custom
+        </a>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="bh-card p-5 text-center">
+        <div class="stat-icon coral mx-auto mb-3" style="width:64px;height:64px;font-size:1.6rem;">
+            <i class="bi bi-scissors"></i>
+        </div>
+        <h5>No services yet</h5>
+        <p class="text-muted mb-3">Add services so customers can book with you.</p>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a asp-action="Templates" class="btn btn-primary">
+                <i class="bi bi-grid me-1"></i> Pick from templates
+            </a>
+            <a asp-action="Create" class="btn btn-outline-secondary">Add custom</a>
+        </div>
+    </div>
+}
+else
+{
+    @foreach (var group in groups)
+    {
+        <h5 class="mt-4 mb-2 fw-semibold" style="color:var(--bh-text-muted);font-size:.85rem;text-transform:uppercase;letter-spacing:.06em;">
+            <i class="bi bi-tag me-1 text-coral"></i>@group.Key
+        </h5>
+        <div class="bh-card p-0 overflow-hidden mb-3">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="ps-4">Service</th>
+                            <th>Duration</th>
+                            <th>Price</th>
+                            <th>Status</th>
+                            <th class="pe-4 text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var s in group.OrderBy(x => x.Name))
+                    {
+                        <tr>
+                            <td class="ps-4">
+                                <div class="fw-semibold">@s.Name</div>
+                                @if (!string.IsNullOrEmpty(s.Description))
+                                {
+                                    <div class="text-muted small">@s.Description</div>
+                                }
+                            </td>
+                            <td>@s.DurationMinutes min</td>
+                            <td class="fw-semibold">₹@s.Price</td>
+                            <td>
+                                @if (s.IsActive)
+                                { <span class="badge bg-success">Visible</span> }
+                                else
+                                { <span class="badge bg-secondary">Hidden</span> }
+                            </td>
+                            <td class="pe-4 text-end">
+                                <div class="d-flex gap-1 justify-content-end flex-wrap">
+                                    <a asp-action="Edit" asp-route-id="@s.Id" class="btn btn-light btn-sm">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="Toggle" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@s.Id" />
+                                        <button class="btn @(s.IsActive ? "btn-outline-secondary" : "btn-outline-primary") btn-sm"
+                                                title="@(s.IsActive ? "Hide from customers" : "Make visible")">
+                                            <i class="bi @(s.IsActive ? "bi-eye-slash" : "bi-eye")"></i>
+                                        </button>
+                                    </form>
+                                    <form asp-action="Delete" method="post" class="d-inline"
+                                          onsubmit="return confirm('Delete @s.Name?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="id" value="@s.Id" />
+                                        <button class="btn btn-outline-danger btn-sm">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}

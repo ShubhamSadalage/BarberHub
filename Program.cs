@@ -68,22 +68,25 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
-// ----- Google authentication (only when enabled + configured) -----
+// ----- Google authentication -----
+// Always register the Google handler so the scheme exists.
+// If keys are missing/empty the handler is registered but GoogleAuthController
+// will catch that and show a friendly error instead of crashing.
 {
-    var googleEnabled = builder.Configuration.GetValue<bool>("Features:GoogleLoginEnabled");
-    var googleClientId = builder.Configuration["Google:OAuth:ClientId"];
-    var googleSecret = builder.Configuration["Google:OAuth:ClientSecret"];
-    if (googleEnabled && !string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleSecret))
-    {
-        builder.Services.AddAuthentication()
-            .AddGoogle(options =>
-            {
-                options.ClientId = googleClientId;
-                options.ClientSecret = googleSecret;
-                options.CallbackPath = "/signin-google";
-                options.SaveTokens = true;
-            });
-    }
+    var googleClientId = builder.Configuration["Google:OAuth:ClientId"] ?? "";
+    var googleSecret   = builder.Configuration["Google:OAuth:ClientSecret"] ?? "";
+
+    // Use placeholder values when keys are not configured so the scheme is still
+    // registered — clicking the button will hit GoogleAuthController which checks
+    // the feature flag and shows a "not configured" message instead of throwing.
+    builder.Services.AddAuthentication()
+        .AddGoogle(options =>
+        {
+            options.ClientId     = string.IsNullOrEmpty(googleClientId) ? "not-configured" : googleClientId;
+            options.ClientSecret = string.IsNullOrEmpty(googleSecret)   ? "not-configured" : googleSecret;
+            options.CallbackPath = "/GoogleAuth/Callback";
+            options.SaveTokens   = true;
+        });
 }
 
 // ----- MVC + Views -----

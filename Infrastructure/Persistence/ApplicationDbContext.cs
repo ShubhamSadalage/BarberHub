@@ -46,6 +46,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
             entity.Property(e => e.Description).HasMaxLength(1000);
+            entity.Property(e => e.Category).HasMaxLength(50).HasDefaultValue("Hair");
             entity.Property(e => e.Price).HasColumnType("decimal(10,2)");
 
             entity.HasOne(e => e.Barber)
@@ -54,6 +55,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => e.BarberId);
+            entity.HasIndex(e => new { e.BarberId, e.IsActive });
         });
 
         // Product

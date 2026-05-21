@@ -12,7 +12,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Barber Hub" />
+    <meta name="theme-color" content="#000000">
     <title>@ViewData["Title"] - Barber Hub</title>
+    <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -102,6 +104,16 @@
             color: var(--bh-text); cursor: pointer;
         }
         .bh-bell-btn:hover { background: var(--bh-primary-soft); color: var(--bh-primary); }
+
+        /* Generic icon-only button (cart, etc.) */
+        .bh-icon-btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 40px; height: 40px; border-radius: 50%;
+            background: #fff; border: 1px solid var(--bh-border);
+            color: var(--bh-text); text-decoration: none; font-size: 1.1rem;
+            transition: all .15s ease;
+        }
+        .bh-icon-btn:hover { background: var(--bh-primary-soft); color: var(--bh-primary); }
         .bh-bell-badge {
             position: absolute; top: 4px; right: 4px;
             background: var(--bh-primary); color: #fff;
@@ -275,13 +287,32 @@
         .price-original { font-size: .85rem; color: var(--bh-text-muted); text-decoration: line-through; }
 
         /* ---------- Barber card ---------- */
-        .barber-card { background: #fff; border: 1px solid var(--bh-border); border-radius: var(--bh-radius);
-            overflow: hidden; height: 100%; transition: transform .2s ease, box-shadow .2s ease; }
+        .barber-card {
+            background: #fff; border: 1px solid var(--bh-border); border-radius: var(--bh-radius);
+            height: 100%; transition: transform .2s ease, box-shadow .2s ease;
+            display: flex; flex-direction: column;
+            /* NO overflow:hidden here — allows the avatar to float above the cover */
+        }
         .barber-card:hover { transform: translateY(-3px); box-shadow: var(--bh-shadow-lg); }
-        .barber-cover { height: 80px; background: linear-gradient(135deg, var(--bh-primary), var(--bh-accent)); position: relative; }
-        .barber-avatar { width: 70px; height: 70px; border-radius: 50%; border: 4px solid #fff;
-            background: #f3f4f6; object-fit: cover; margin-top: -35px; margin-left: 18px;
-            box-shadow: var(--bh-shadow); display: flex; align-items: center; justify-content: center; color: var(--bh-primary); }
+        .barber-cover {
+            height: 100px;
+            background: linear-gradient(135deg, var(--bh-primary), var(--bh-accent));
+            border-radius: var(--bh-radius) var(--bh-radius) 0 0;
+            position: relative; overflow: hidden; flex-shrink: 0;
+        }
+        .barber-cover-img {
+            width: 100%; height: 100%; object-fit: cover; opacity: .35;
+        }
+        .barber-avatar {
+            width: 72px; height: 72px; border-radius: 50%; border: 4px solid #fff;
+            background: linear-gradient(135deg, #6d28d9, #4f46e5);
+            object-fit: cover;
+            margin-top: -36px; margin-left: 20px;
+            box-shadow: 0 4px 14px rgba(26,29,41,0.14);
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-weight: 700; font-size: 1.25rem;
+            flex-shrink: 0; position: relative; z-index: 2;
+        }
 
         /* ---------- Chips ---------- */
         .bh-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 14px;
@@ -506,6 +537,7 @@
                                 <li><a class="dropdown-item" asp-controller="Admin" asp-action="CreateBooking"><i class="bi bi-calendar-plus me-2"></i>Book for Customer</a></li>
                                 <li><a class="dropdown-item" asp-controller="Admin" asp-action="AddUser"><i class="bi bi-person-plus me-2"></i>Add Customer</a></li>
                                 <li><hr class="dropdown-divider" /></li>
+                                <li><a class="dropdown-item" asp-controller="Services" asp-action="Index"><i class="bi bi-scissors me-2"></i>My Services</a></li>
                                 <li><a class="dropdown-item" asp-controller="Bookings" asp-action="Manage"><i class="bi bi-calendar-week me-2"></i>Manage Bookings</a></li>
                                 <li><a class="dropdown-item" asp-controller="Products" asp-action="Manage"><i class="bi bi-box-seam me-2"></i>My Products</a></li>
                                 <li><a class="dropdown-item" asp-controller="Orders" asp-action="Manage"><i class="bi bi-receipt me-2"></i>Orders</a></li>
@@ -557,15 +589,19 @@
 
                         @if (isUser)
                         {
-                            <li><a class="bh-cart-pill" asp-controller="Cart" asp-action="Index"><i class="bi bi-bag"></i> Cart</a></li>
+                            <li>
+                                <a class="bh-icon-btn" asp-controller="Cart" asp-action="Index" title="Cart">
+                                    <i class="bi bi-bag"></i>
+                                </a>
+                            </li>
                         }
                         <li class="dropdown">
                             @{
                                 var initial = (User.Identity!.Name ?? "U").Substring(0,1).ToUpper();
                             }
-                            <a class="bh-avatar-btn dropdown-toggle" data-bs-toggle="dropdown" href="#">
-                                <span class="bh-avatar">@initial</span>
-                                <span>@User.Identity!.Name</span>
+                            <a class="bh-avatar dropdown-toggle" data-bs-toggle="dropdown" href="#"
+                               style="cursor:pointer; text-decoration:none;" title="Account">
+                                @initial
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" asp-controller="Auth" asp-action="Profile"><i class="bi bi-person me-2"></i>Edit Profile</a></li>
@@ -654,6 +690,7 @@
             <a class="nav-link-mobile" asp-controller="Admin" asp-action="Earnings" data-bs-dismiss="offcanvas"><i class="bi bi-graph-up-arrow"></i>Earnings</a>
             <a class="nav-link-mobile" asp-controller="Admin" asp-action="CreateBooking" data-bs-dismiss="offcanvas"><i class="bi bi-calendar-plus"></i>Book for Customer</a>
             <a class="nav-link-mobile" asp-controller="Admin" asp-action="AddUser" data-bs-dismiss="offcanvas"><i class="bi bi-person-plus"></i>Add Customer</a>
+            <a class="nav-link-mobile" asp-controller="Services" asp-action="Index" data-bs-dismiss="offcanvas"><i class="bi bi-scissors"></i>My Services</a>
             <a class="nav-link-mobile" asp-controller="Bookings" asp-action="Manage" data-bs-dismiss="offcanvas"><i class="bi bi-calendar-week"></i>Manage Bookings</a>
             <a class="nav-link-mobile" asp-controller="Products" asp-action="Manage" data-bs-dismiss="offcanvas"><i class="bi bi-box-seam"></i>My Products</a>
             <a class="nav-link-mobile" asp-controller="Orders" asp-action="Manage" data-bs-dismiss="offcanvas"><i class="bi bi-receipt"></i>Orders</a>
