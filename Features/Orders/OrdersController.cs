@@ -138,7 +138,7 @@ public class OrdersController : Controller
     }
 
     // Stripe webhook - must be anonymous
-    [HttpPost("stripe/webhook"), AllowAnonymous, IgnoreAntiforgeryToken]
+    [HttpPost("stripe/webhook"), AllowAnonymous, IgnoreAntiforgeryToken]ss
     public async Task<IActionResult> StripeWebhook()
     {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();

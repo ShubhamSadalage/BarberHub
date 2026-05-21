@@ -136,7 +136,7 @@ public class ChatController : Controller
         return View(contacts.OrderByDescending(c => c.LastMessageAt).ToList());
     }
 
-    [HttpGet]
+    [HttpGet]ss
     public async Task<IActionResult> Conversation(string otherUserId)
     {
         var userId = _currentUser.UserId!;
