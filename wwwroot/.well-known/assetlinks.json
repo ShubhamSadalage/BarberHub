@@ -4,9 +4,8 @@
     "target": {
       "namespace": "android_app",
       "package_name": "com.barberhub.app",
-      "sha256_cert_fingerprints": [
-        "PASTE_YOUR_SHA256_FINGERPRINT_HERE"
-      ]
+      "sha256_cert_fingerprints": [ "3A:88:74:CD:3B:06:E9:C3:85:25:37:26:8E:72:D8:18:D0:0A:69:A0:5F:16:BD:D2:62:15:FF:D2:70:6F:BD:52" ]
+
     }
   }
 ]
