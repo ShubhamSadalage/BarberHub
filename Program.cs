@@ -79,15 +79,15 @@ builder.Services.ConfigureApplicationCookie(options =>
     // Use placeholder values when keys are not configured so the scheme is still
     // registered — clicking the button will hit GoogleAuthController which checks
     // the feature flag and shows a "not configured" message instead of throwing.
-    builder.Services.AddAuthentication()
-        .AddGoogle(options =>
-        {
+        builder.Services.AddAuthentication()
+            .AddGoogle(options =>
+            {
             options.ClientId     = string.IsNullOrEmpty(googleClientId) ? "not-configured" : googleClientId;
             options.ClientSecret = string.IsNullOrEmpty(googleSecret)   ? "not-configured" : googleSecret;
             options.CallbackPath = "/GoogleAuth/Callback";
             options.SaveTokens   = true;
-        });
-}
+            });
+    }
 
 // ----- MVC + Views -----
 builder.Services.AddControllersWithViews();
@@ -183,11 +183,25 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Serve .well-known/assetlinks.json for TWA (Play Store) verification
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        System.IO.Path.Combine(builder.Environment.WebRootPath, ".well-known")),
+    RequestPath = "/.well-known",
+    ServeUnknownFileTypes = true,  // .json files are known, but this is a safety net
+    DefaultContentType = "application/json"
+});
+
 app.UseStaticFiles();
 app.UseRouting();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Health check — also used by Render keep-alive ping
+app.MapGet("/health", () => Results.Ok(new { status = "ok", time = DateTime.UtcNow }));
 
 // Routes
 app.MapControllerRoute(

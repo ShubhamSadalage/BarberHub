@@ -22,7 +22,7 @@ public class BarbersController : Controller
         return View(barbers);
     }
 
-    [HttpGet]ss
+    [HttpGet]
     public async Task<IActionResult> Details(string id)
     {
         var barber = await _service.GetDetailsAsync(id);
