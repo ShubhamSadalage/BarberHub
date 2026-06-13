@@ -20,6 +20,7 @@ public class AuthController : Controller
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly ITwoFactorService _twoFactor;
     private readonly IOtpService _otp;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IAuthService authService,
@@ -29,7 +30,8 @@ public class AuthController : Controller
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         ITwoFactorService twoFactor,
-        IOtpService otp)
+        IOtpService otp,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _currentUser = currentUser;
@@ -39,8 +41,8 @@ public class AuthController : Controller
         _signInManager = signInManager;
         _twoFactor = twoFactor;
         _otp = otp;
+        _logger = logger;
     }
-
     [HttpGet]
     public IActionResult Register() => View(new RegisterDto());
 

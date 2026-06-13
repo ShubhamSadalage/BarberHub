@@ -1,6 +1,7 @@
 using BarberHub.Web.Domain.Entities;
 using BarberHub.Web.Features.Barbers.Dtos;
 using BarberHub.Web.Features.Barbers.Repositories;
+using Microsoft.AspNetCore.Identity;
 
 namespace BarberHub.Web.Features.Barbers.Services;
 
@@ -23,75 +24,159 @@ public interface IBarberService
 public class BarberService : IBarberService
 {
     private readonly IBarberRepository _repo;
-    private readonly Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> _userManager;
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ILogger<BarberService> _logger;
 
     public BarberService(
         IBarberRepository repo,
-        Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> userManager)
+        UserManager<ApplicationUser> userManager,
+        ILogger<BarberService> logger)
     {
         _repo = repo;
         _userManager = userManager;
+        _logger = logger;
     }
 
-    public async Task<HomeBarberListDto> GetForHomeAsync(string? userId, double? lat, double? lng, int limit = 12)
+    public async Task<HomeBarberListDto> GetForHomeAsync(
+        string? userId,
+        double? lat,
+        double? lng,
+        int limit = 12)
     {
-        // Step 1: If client supplied live coordinates, use them
-        if (lat.HasValue && lng.HasValue)
+        try
         {
-            var list = await SearchAsync(new BarberSearchDto
-            {
-                Latitude = lat,
-                Longitude = lng,
-                RadiusKm = 25
-            });
-            if (list.Any())
-                return new HomeBarberListDto { Source = HomeBarberSource.LiveLocation, Items = list.Take(limit).ToList() };
-        }
+            _logger.LogInformation(
+                "GetForHomeAsync started. UserId={UserId}, Lat={Lat}, Lng={Lng}, Limit={Limit}",
+                userId, lat, lng, limit);
 
-        // Step 2: Use the user's previously stored location, if any
-        if (!string.IsNullOrEmpty(userId))
-        {
-            var u = await _userManager.FindByIdAsync(userId);
-            if (u is not null && u.Latitude.HasValue && u.Longitude.HasValue)
+            // Step 1: Live location
+            if (lat.HasValue && lng.HasValue)
             {
+                _logger.LogInformation(
+                    "Searching using live location. Lat={Lat}, Lng={Lng}",
+                    lat, lng);
+
                 var list = await SearchAsync(new BarberSearchDto
                 {
-                    Latitude = u.Latitude,
-                    Longitude = u.Longitude,
+                    Latitude = lat,
+                    Longitude = lng,
                     RadiusKm = 25
                 });
+
+                _logger.LogInformation(
+                    "Live location search returned {Count} barbers",
+                    list.Count());
+
                 if (list.Any())
+                {
+                    _logger.LogInformation(
+                        "Returning barbers from live location search");
+
                     return new HomeBarberListDto
                     {
-                        Source = HomeBarberSource.SavedLocation,
-                        Label = u.LocationLabel ?? u.City,
+                        Source = HomeBarberSource.LiveLocation,
                         Items = list.Take(limit).ToList()
                     };
+                }
             }
 
-            // Step 3: City-based fallback
-            if (u is not null && !string.IsNullOrWhiteSpace(u.City))
+            // Step 2: Saved location
+            if (!string.IsNullOrEmpty(userId))
             {
-                var list = await SearchAsync(new BarberSearchDto { City = u.City, RadiusKm = 9999 });
-                if (list.Any())
-                    return new HomeBarberListDto
+                _logger.LogInformation(
+                    "Fetching user profile. UserId={UserId}",
+                    userId);
+
+                var u = await _userManager.FindByIdAsync(userId);
+
+                if (u is not null && u.Latitude.HasValue && u.Longitude.HasValue)
+                {
+                    _logger.LogInformation(
+                        "Using saved location. UserId={UserId}, Lat={Lat}, Lng={Lng}",
+                        userId, u.Latitude, u.Longitude);
+
+                    var list = await SearchAsync(new BarberSearchDto
                     {
-                        Source = HomeBarberSource.City,
-                        Label = u.City,
-                        Items = list.Take(limit).ToList()
-                    };
+                        Latitude = u.Latitude,
+                        Longitude = u.Longitude,
+                        RadiusKm = 25
+                    });
+
+                    _logger.LogInformation(
+                        "Saved location search returned {Count} barbers",
+                        list.Count());
+
+                    if (list.Any())
+                    {
+                        return new HomeBarberListDto
+                        {
+                            Source = HomeBarberSource.SavedLocation,
+                            Label = u.LocationLabel ?? u.City,
+                            Items = list.Take(limit).ToList()
+                        };
+                    }
+                }
+
+                // Step 3: City fallback
+                if (u is not null && !string.IsNullOrWhiteSpace(u.City))
+                {
+                    _logger.LogInformation(
+                        "Using city fallback. UserId={UserId}, City={City}",
+                        userId, u.City);
+
+                    var list = await SearchAsync(new BarberSearchDto
+                    {
+                        City = u.City,
+                        RadiusKm = 9999
+                    });
+
+                    _logger.LogInformation(
+                        "City search returned {Count} barbers",
+                        list.Count());
+
+                    if (list.Any())
+                    {
+                        return new HomeBarberListDto
+                        {
+                            Source = HomeBarberSource.City,
+                            Label = u.City,
+                            Items = list.Take(limit).ToList()
+                        };
+                    }
+                }
             }
+
+            // Step 4: Featured fallback
+            _logger.LogInformation(
+                "No location-based results found. Loading featured barbers.");
+
+            var all = await SearchAsync(new BarberSearchDto
+            {
+                RadiusKm = 9999
+            });
+
+            _logger.LogInformation(
+                "Featured search returned {Count} barbers",
+                all.Count());
+
+            return new HomeBarberListDto
+            {
+                Source = HomeBarberSource.Featured,
+                Items = all.Take(limit).ToList()
+            };
         }
-
-        // Step 4: No location info — show featured/newest
-        var all = await SearchAsync(new BarberSearchDto { RadiusKm = 9999 });
-        return new HomeBarberListDto
+        catch (Exception ex)
         {
-            Source = HomeBarberSource.Featured,
-            Items = all.Take(limit).ToList()
-        };
-    }
+            _logger.LogError(
+                ex,
+                "Error in GetForHomeAsync. UserId={UserId}, Lat={Lat}, Lng={Lng}",
+                userId,
+                lat,
+                lng);
 
+            throw;
+        }
+    }
     public async Task<List<BarberListItemDto>> SearchAsync(BarberSearchDto dto)
     {
         var barbers = await _repo.SearchAsync(dto.City);
