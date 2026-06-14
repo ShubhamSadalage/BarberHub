@@ -253,11 +253,4 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-try
-{
-    app.Run();
-}
-finally
-{
-    Log.CloseAndFlush();
-}
+app.Run();
